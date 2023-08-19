@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: ${DB_NAME}
+    image: postgres:15.4
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pg:/var/lib/postgresql/data
+    stdin_open: true
+    tty: true
+  app:
+    container_name: app
+    depends_on:
+      - db
+    build:
+      context: .
+      target: ${STAGE}
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      APP_VERSION: ${APP_VERSION}
+      STAGE: ${STAGE}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      PORT: ${PORT}
+      HOST_API: ${HOST_API}
+      JWT_SECRET: ${JWT_SECRET}
+
+volumes:
+  pg:
+    external: false
