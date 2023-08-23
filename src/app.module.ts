@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { SeedModule } from './seed/seed.module';
+import { FilesModule } from './files/files.module';
+import { ImagesModule } from './images/images.module';
 
 @Module({
   imports: [
@@ -38,6 +40,10 @@ import { SeedModule } from './seed/seed.module';
     AuthModule,
 
     SeedModule,
+
+    FilesModule,
+
+    ImagesModule,
   ],
   controllers: [],
   providers: [],
