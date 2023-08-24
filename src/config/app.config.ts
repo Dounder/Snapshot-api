@@ -8,4 +8,7 @@ export const ENV_CONFIG = () => ({
   state: process.env.STATE,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpirationTime: process.env.JWT_EXPIRATION_TIME,
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
 });

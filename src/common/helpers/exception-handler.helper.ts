@@ -11,16 +11,6 @@ import { ErrorCodes } from './custom-error.helper';
 const logger = new Logger('Exception');
 
 export function ExceptionHandler(error: any) {
-  if (!error.code) {
-    // Unexpected error
-    logger.log(error);
-    throw new InternalServerErrorException({
-      message: 'Unexpected error',
-      error: ErrorCodes.UNEXPECTED_ERROR,
-      statusCode: 500,
-    });
-  }
-
   switch (error.code) {
     // IX unique key violation error code in postgres
     case '23505':
