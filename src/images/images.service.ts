@@ -10,10 +10,7 @@ import { Image } from './entities/image.entity';
 import { CloudinaryService } from './services/cloudinary.service';
 
 interface Args {
-  buffer: Buffer;
-  width?: number;
-  height?: number;
-  quality?: number;
+  file: Express.Multer.File;
   type?: 'webp' | 'png' | 'jpeg';
 }
 
@@ -32,13 +29,10 @@ export class ImagesService {
     try {
       const promises = files.map(async (file) => {
         const filename = file.originalname.split('.')[0];
-        const [thumbnail, hd] = await Promise.all([
-          this.resizeImage({ buffer: file.buffer }),
-          this.resizeImage({ buffer: file.buffer, width: 1920, height: 1080, quality: 80 }),
-        ]);
+        const [thumbnail, hd] = await Promise.all([this.resizeImage({ file }), this.resizeImage({ file, type: 'jpeg' })]);
         const [url, downloadUrl, blurhash] = await Promise.all([
-          this.cloudinaryService.upload(thumbnail, filename),
-          this.cloudinaryService.upload(hd, `${filename}_hd`, 'png'),
+          this.cloudinaryService.upload(thumbnail, filename, 'webp'),
+          this.cloudinaryService.upload(hd, `${filename}_hd`, 'jpeg'),
           this.createBlurhash(file),
         ]);
 
@@ -71,17 +65,18 @@ export class ImagesService {
 
   private async resizeImage(args: Args): Promise<Buffer> {
     try {
-      const { buffer, width = 1280, height = 720, quality = 50, type = 'webp' } = args;
+      const { file, type = 'webp' } = args;
+      const { width, height } = await this.getDimensions({ file, type });
 
-      const image = sharp(buffer).resize(width, height, { fit: 'cover', position: 'center' }).withMetadata({ orientation: 1 });
+      const image = sharp(file.buffer).resize(width, height, { fit: 'cover', position: 'center' }).withMetadata({ orientation: 1 });
 
       switch (type) {
         case 'webp':
-          return await image.webp({ quality }).toBuffer();
+          return await image.webp({ quality: 50 }).toBuffer();
         case 'png':
-          return await image.png({ quality }).toBuffer();
+          return await image.png({ quality: 100 }).toBuffer();
         case 'jpeg':
-          return await image.jpeg({ quality }).toBuffer();
+          return await image.jpeg({ quality: 100 }).toBuffer();
         default:
           return await image.toBuffer();
       }
@@ -89,6 +84,22 @@ export class ImagesService {
       this.logger.error('Error while resizing image', error);
       throw new Error('Error while resizing image');
     }
+  }
+
+  private async getDimensions(args: Args): Promise<{ width: number; height: number }> {
+    const { file, type } = args;
+    const dimensions = await sharp(file.buffer).metadata();
+
+    if (type === 'webp')
+      return {
+        width: dimensions.width > dimensions.height ? 1280 : 720,
+        height: dimensions.width > dimensions.height ? 720 : 1080,
+      };
+
+    return {
+      width: dimensions.width > dimensions.height ? 2560 : 1440,
+      height: dimensions.width > dimensions.height ? 1440 : 2160,
+    };
   }
 
   private async createBlurhash(file: Express.Multer.File): Promise<string> {

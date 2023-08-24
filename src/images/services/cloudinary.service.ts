@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { v2 } from 'cloudinary';
 import { ExceptionHandler } from '../../common/helpers';
 
+type validTypes = 'webp' | 'png' | 'jpeg';
+
 @Injectable()
 export class CloudinaryService {
   private readonly logger = new Logger('CloudinaryService');
@@ -16,7 +18,7 @@ export class CloudinaryService {
     });
   }
 
-  async upload(buffer: Buffer, name: string, type: 'webp' | 'png' = 'webp'): Promise<string | null> {
+  async upload(buffer: Buffer, name: string, type: validTypes): Promise<string | null> {
     return new Promise<string | null>((resolve, reject) => {
       const uploadStream = this.cloudinary.uploader.upload_stream(
         {
@@ -25,11 +27,12 @@ export class CloudinaryService {
           unique_filename: false,
           overwrite: true,
           format: type,
-          folder: 'snapshot',
+          folder: type === 'webp' ? 'snapshot/thumbnails' : 'snapshot/hd',
+          type: 'upload',
         },
         (error, result) => {
           if (error || !result) {
-            console.error('Error uploading to Cloudinary:', error);
+            this.logger.error('Error uploading to Cloudinary:', error);
             reject(error?.message || 'Unknown error');
             return;
           }
