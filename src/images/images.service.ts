@@ -2,12 +2,13 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getPixels } from '@unpic/pixels';
 import { encode } from 'blurhash';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import { Repository } from 'typeorm';
-import crypto from 'crypto';
 
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ExceptionHandler } from '../common/helpers';
+import { CreateImageDto } from './dtos/create-image.dto';
 import { Image } from './entities/image.entity';
 import { CloudinaryService } from './services/cloudinary.service';
 
@@ -27,7 +28,7 @@ export class ImagesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async create(files: Array<Express.Multer.File>): Promise<Image[]> {
+  async create(files: Array<Express.Multer.File>, createImageDto: CreateImageDto): Promise<Image[]> {
     try {
       const promises = files.map(async (file) => {
         const filename = file.originalname.split('.')[0];
@@ -39,21 +40,32 @@ export class ImagesService {
           this.createBlurhash(file),
         ]);
 
-        return { name: filename, cloudinaryId, url, blurhash, downloadUrl };
+        return { name: filename, cloudinaryId, url, blurhash, downloadUrl, userId: createImageDto.userId };
       });
 
       const images = await Promise.all(promises);
 
       return this.imageRepository.save(images);
+      return [];
     } catch (error) {
       ExceptionHandler(error);
     }
   }
 
-  async findAll(pagination: PaginationDto): Promise<Image[]> {
+  async findAll(pagination: PaginationDto, userId: string = null): Promise<Image[]> {
     try {
       const { offset, limit } = pagination;
-      return this.imageRepository.find({ skip: offset, take: limit });
+
+      const query = this.imageRepository
+        .createQueryBuilder('image')
+        .offset(offset)
+        .take(limit)
+        .innerJoinAndSelect('image.user', 'user')
+        .select(['image', 'user.id', 'user.username', 'user.name', 'user.lastName']);
+
+      if (userId) query.andWhere('image.userId = :userId', { userId });
+
+      return await query.getMany();
     } catch (error) {
       ExceptionHandler(error);
     }
@@ -61,16 +73,7 @@ export class ImagesService {
 
   async findAllPublic() {
     try {
-      return this.imageRepository.createQueryBuilder().where('public = :public', { public: true }).orderBy('RANDOM()').limit(6).getMany();
-    } catch (error) {
-      ExceptionHandler(error);
-    }
-  }
-
-  async findAllByUser(userId: string, pagination: PaginationDto): Promise<Image[]> {
-    try {
-      const { offset, limit } = pagination;
-      return this.imageRepository.find({ where: { user: { id: userId } }, skip: offset, take: limit });
+      return await this.imageRepository.createQueryBuilder().where('public = :public', { public: true }).orderBy('RANDOM()').limit(6).getMany();
     } catch (error) {
       ExceptionHandler(error);
     }

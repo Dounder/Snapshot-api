@@ -63,6 +63,7 @@ export class AuthService {
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthResponse> {
+    // todo: change jwtService.verify to jwtService.decode
     const { token } = refreshTokenDto;
     const { id, exp } = this.jwtService.verify(token) as JwtPayload;
 

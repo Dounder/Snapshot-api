@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, Relation } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, Relation } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from './../../users/entities/user.entity';
 
@@ -22,6 +22,7 @@ export class Image extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   public: boolean;
 
-  @ManyToOne(() => User, (user) => user.images, { nullable: true, lazy: true })
+  @ManyToOne(() => User, (user) => user.images, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
   user: Relation<User>;
 }
