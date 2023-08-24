@@ -10,6 +10,7 @@ import { SignInDto, SignUpDto } from './dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { AuthResponse, JwtPayload } from './interfaces/auth.interface';
+import { UserRole } from '../users/enums/user-role.enum';
 
 @Injectable()
 export class AuthService {
@@ -28,6 +29,7 @@ export class AuthService {
       const user = this.usersRepository.create({
         ...userData,
         password: bcrypt.hashSync(password, 10),
+        roles: [UserRole.GUEST],
       });
 
       await this.usersRepository.save(user);
@@ -47,6 +49,8 @@ export class AuthService {
     const user = await this.usersRepository.findOneBy({ email });
 
     if (!user) throw new BadRequestException('Invalid credentials');
+
+    if (user.deletedAt) throw new UnauthorizedException(`User is inactive, please contact support`);
 
     if (!bcrypt.compareSync(password, user.password)) throw new BadRequestException('Invalid credentials');
 
