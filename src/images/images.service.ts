@@ -1,10 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getPixels } from '@unpic/pixels';
 import { encode } from 'blurhash';
 import sharp from 'sharp';
 import { Repository } from 'typeorm';
+import crypto from 'crypto';
 
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ExceptionHandler } from '../common/helpers';
 import { Image } from './entities/image.entity';
 import { CloudinaryService } from './services/cloudinary.service';
@@ -29,14 +31,15 @@ export class ImagesService {
     try {
       const promises = files.map(async (file) => {
         const filename = file.originalname.split('.')[0];
+        const cloudinaryId = `${filename}__${crypto.randomBytes(8).toString('hex')}`;
         const [thumbnail, hd] = await Promise.all([this.resizeImage({ file }), this.resizeImage({ file, type: 'jpeg' })]);
         const [url, downloadUrl, blurhash] = await Promise.all([
-          this.cloudinaryService.upload(thumbnail, filename, 'webp'),
-          this.cloudinaryService.upload(hd, `${filename}_hd`, 'jpeg'),
+          this.cloudinaryService.upload(thumbnail, cloudinaryId, 'webp'),
+          this.cloudinaryService.upload(hd, cloudinaryId, 'jpeg'),
           this.createBlurhash(file),
         ]);
 
-        return { name: file.originalname, url, blurhash, downloadUrl };
+        return { name: filename, cloudinaryId, url, blurhash, downloadUrl };
       });
 
       const images = await Promise.all(promises);
@@ -47,20 +50,41 @@ export class ImagesService {
     }
   }
 
-  findAll() {
-    return `This action returns all images`;
+  async findAll(pagination: PaginationDto): Promise<Image[]> {
+    try {
+      const { offset, limit } = pagination;
+      return this.imageRepository.find({ skip: offset, take: limit });
+    } catch (error) {
+      ExceptionHandler(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} image`;
+  async findAllPublic() {
+    try {
+      return this.imageRepository.createQueryBuilder().where('public = :public', { public: true }).orderBy('RANDOM()').limit(6).getMany();
+    } catch (error) {
+      ExceptionHandler(error);
+    }
   }
 
-  update(id: number) {
-    return `This action updates a #${id} image`;
+  async findAllByUser(userId: string, pagination: PaginationDto): Promise<Image[]> {
+    try {
+      const { offset, limit } = pagination;
+      return this.imageRepository.find({ where: { user: { id: userId } }, skip: offset, take: limit });
+    } catch (error) {
+      ExceptionHandler(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} image`;
+  async remove(id: string): Promise<{ msg: string }> {
+    const image = await this.imageRepository.findOneBy({ id });
+
+    if (!image) throw new NotFoundException('Image not found');
+
+    await this.cloudinaryService.destroy(image.cloudinaryId);
+    await this.imageRepository.delete(id);
+
+    return { msg: `Image ${image.name} deleted` };
   }
 
   private async resizeImage(args: Args): Promise<Buffer> {

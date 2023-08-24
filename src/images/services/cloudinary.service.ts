@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 } from 'cloudinary';
-import { ExceptionHandler } from '../../common/helpers';
+
+import { CustomError, ExceptionHandler } from '../../common/helpers';
 
 type validTypes = 'webp' | 'png' | 'jpeg';
 
@@ -24,8 +25,6 @@ export class CloudinaryService {
         {
           resource_type: 'image',
           public_id: name,
-          unique_filename: false,
-          overwrite: true,
           format: type,
           folder: type === 'webp' ? 'snapshot/thumbnails' : 'snapshot/hd',
           type: 'upload',
@@ -45,5 +44,21 @@ export class CloudinaryService {
       ExceptionHandler(error);
       return null;
     });
+  }
+
+  async destroy(cloudinaryId: string): Promise<void> {
+    try {
+      const [thumbnail, hd] = await Promise.all([
+        this.cloudinary.uploader.destroy(`snapshot/thumbnails/${cloudinaryId}`, { resource_type: 'image' }),
+        this.cloudinary.uploader.destroy(`snapshot/hd/${cloudinaryId}`, { resource_type: 'image' }),
+      ]);
+
+      if (thumbnail.result !== 'ok' || hd.result !== 'ok') {
+        this.logger.error(`Error deleting from Cloudinary, thumbnail: ${thumbnail.result}, hd: ${hd.result}`);
+        throw new CustomError({ message: 'Unexpected error', code: 500 });
+      }
+    } catch (error) {
+      ExceptionHandler(error);
+    }
   }
 }

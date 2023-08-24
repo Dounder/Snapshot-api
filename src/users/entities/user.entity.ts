@@ -1,6 +1,7 @@
+import { Column, Entity, Index, OneToMany, Relation } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
-import { Column, Entity, Index } from 'typeorm';
 import { UserRole } from '../enums/user-role.enum';
+import { Image } from './../../images/entities/image.entity';
 
 @Entity('users')
 @Index('username_ix', ['username'], { unique: true })
@@ -23,4 +24,7 @@ export class User extends BaseEntity {
 
   @Column({ type: 'enum', enum: UserRole, default: [UserRole.USER], array: true })
   roles: UserRole[];
+
+  @OneToMany(() => Image, (image) => image.user)
+  images: Relation<Image[]>;
 }

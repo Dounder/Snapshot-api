@@ -1,14 +1,5 @@
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-  ForbiddenException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ErrorCodes } from './custom-error.helper';
-
-const logger = new Logger('Exception');
 
 export function ExceptionHandler(error: any) {
   switch (error.code) {
@@ -49,7 +40,6 @@ export function ExceptionHandler(error: any) {
       });
 
     default:
-      logger.log(error);
       throw new InternalServerErrorException({
         message: 'Unexpected error',
         error: ErrorCodes.UNEXPECTED_ERROR,

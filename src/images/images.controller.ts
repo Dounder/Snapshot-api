@@ -1,7 +1,8 @@
-import { Controller, Delete, Get, Param, Patch, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 import { Auth } from '../auth/decorators';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { UserRole } from '../users/enums/user-role.enum';
 import { fileFilter } from './helpers/file-filter.helper';
 import { ImagesService } from './images.service';
@@ -18,22 +19,24 @@ export class ImagesController {
   }
 
   @Get()
-  findAll() {
-    return this.imagesService.findAll();
+  @Auth(UserRole.ADMIN, UserRole.USER)
+  findAll(@Query() pagination: PaginationDto) {
+    return this.imagesService.findAll(pagination);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.imagesService.findOne(+id);
+  @Get('user/:id')
+  @Auth()
+  findAllByGuest(@Param('id', ParseUUIDPipe) id: string, @Query() pagination: PaginationDto) {
+    return this.imagesService.findAllByUser(id, pagination);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string) {
-    return this.imagesService.update(+id);
+  @Get('public')
+  findAllPublic() {
+    return this.imagesService.findAllPublic();
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.imagesService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.imagesService.remove(id);
   }
 }
