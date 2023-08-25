@@ -24,10 +24,10 @@ Backend service for a Photography Portfolio website. This project is built with 
 
 ## Installation
 
-1. **Clone the Repository**: [Repo](https://github.com/Dounder/nest-pg-rest-boilerplate.git)
+1. **Clone the Repository**: [Repo](https://github.com/Dounder/snapshot-api.git)
 
    ```bash
-   git clone https://github.com/Dounder/nest-pg-rest-boilerplate.git
+   git clone https://github.com/Dounder/snapshot-api.git
    ```
 
 2. **Install dependencies**:
