@@ -22,7 +22,7 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   lastName: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: [UserRole.USER], array: true })
+  @Column({ type: 'enum', enum: UserRole, default: [UserRole.USER], array: true, enumName: 'roles_enum' })
   roles: UserRole[];
 
   @OneToMany(() => Image, (image) => image.user)

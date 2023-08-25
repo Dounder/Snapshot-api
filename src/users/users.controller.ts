@@ -13,25 +13,25 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Auth(UserRole.ADMIN)
+  @Auth(UserRole.ADMIN, UserRole.USER)
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @Auth(UserRole.ADMIN)
-  findAll(@Query() pagination: PaginationDto) {
-    return this.usersService.findAll(pagination);
+  @Auth(UserRole.ADMIN, UserRole.USER)
+  findAll(@Query() pagination: PaginationDto, @GetUser() user: User) {
+    return this.usersService.findAll(pagination, user);
   }
 
   @Get(':term')
-  @Auth(UserRole.ADMIN)
-  findOne(@Param('term') id: string) {
-    return this.usersService.findOneBy(id);
+  @Auth(UserRole.ADMIN, UserRole.USER)
+  findOne(@Param('term') id: string, @GetUser() user: User) {
+    return this.usersService.findOneBy(id, user.roles.includes(UserRole.ADMIN));
   }
 
   @Patch(':id')
-  @Auth(UserRole.ADMIN)
+  @Auth(UserRole.ADMIN, UserRole.USER)
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }

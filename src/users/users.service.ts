@@ -10,6 +10,7 @@ import { PaginationDto } from './../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { UserRole } from './enums/user-role.enum';
 
 @Injectable()
 export class UsersService {
@@ -36,7 +37,7 @@ export class UsersService {
     }
   }
 
-  async findAll(pagination: PaginationDto): Promise<User[]> {
+  async findAll(pagination: PaginationDto, user: User): Promise<User[]> {
     const { limit, offset } = pagination;
 
     const entityMetadata = this.usersRepository.metadata; // Get entity metadata to get all columns except password
@@ -46,19 +47,26 @@ export class UsersService {
       .createQueryBuilder('user')
       .select(validColumns.map((column) => `user.${column}`))
       .skip(offset)
-      .take(limit)
-      .withDeleted();
+      .take(limit);
 
-    return query.getMany();
+    if (user.roles.includes(UserRole.ADMIN)) query.withDeleted();
+
+    if (!user.roles.includes(UserRole.ADMIN))
+      query.andWhere('NOT user.roles && ARRAY[:excludedRole]::roles_enum[]', { excludedRole: UserRole.ADMIN });
+
+    return await query.getMany();
   }
 
-  async findOneBy(term: string): Promise<User> {
+  async findOneBy(term: string, isAdmin = false): Promise<User> {
     try {
       const queryConditions = { where: isUUID(term) ? { id: term } : { email: term }, withDeleted: true };
 
       const user = await this.usersRepository.findOne(queryConditions);
 
       if (!user) throw new CustomError({ message: 'User not found', code: 404 });
+
+      if (!isAdmin && user.deletedAt)
+        throw new CustomError({ message: `User ${user.username} is inactive, please contact the administrator`, code: 403 });
 
       delete user.password;
 
@@ -69,37 +77,45 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOneBy(id);
+
+    if (user.deletedAt) throw new CustomError({ message: `User ${user.username} is inactive, please contact the administrator`, code: 403 });
+
     try {
-      const user = await this.findOneBy(id);
-
-      if (user.deletedAt) throw new CustomError({ message: `User ${user.username} is inactive, please contact the administrator`, code: 403 });
-
       await this.usersRepository.save({ ...user, ...updateUserDto });
-
-      return { ...user, ...updateUserDto };
     } catch (error) {
       ExceptionHandler(error);
     }
+
+    return { ...user, ...updateUserDto };
   }
 
   async remove(currentUser: User, id: string): Promise<{ msg: string }> {
     if (currentUser.id === id) throw new UnauthorizedException('You cannot delete yourself');
 
-    const user = await this.findOneBy(id);
+    const user = await this.findOneBy(id, true);
 
     if (user.deletedAt) throw new BadRequestException(`User ${user.username} is already inactive`);
 
-    await this.usersRepository.softRemove(user);
+    try {
+      await this.usersRepository.softRemove(user);
+    } catch (error) {
+      ExceptionHandler(error);
+    }
 
     return { msg: `User ${user.username} deleted successfully` };
   }
 
   async restore(id: string): Promise<{ msg: string }> {
-    const user = await this.findOneBy(id);
+    const user = await this.findOneBy(id, true);
 
     if (!user.deletedAt) throw new BadRequestException(`User ${user.username} is not inactive`);
 
-    await this.usersRepository.restore({ id: user.id });
+    try {
+      await this.usersRepository.restore({ id: user.id });
+    } catch (error) {
+      ExceptionHandler(error);
+    }
 
     return { msg: `User ${user.username} restored successfully` };
   }
