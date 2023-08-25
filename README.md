@@ -2,11 +2,27 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
-# NestJS + PostgreSQL Boilerplate: Authentication & Authorization
+# Photography Portfolio Backend [Snapshot]
 
-Backend service for the SnapDragon photography website, powering a playful yet professional platform to manage a photographer's portfolio, offer services, and ensure easy content management.
+Backend service for a Photography Portfolio website. This project is built with NestJS and uses PostgreSQL as the database and Cloudinary for image storage.
 
-### Getting Started
+## Table of Contents
+
+- [Photography Portfolio Backend \[Snapshot\]](#photography-portfolio-backend-snapshot)
+  - [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Test](#test)
+  - [License](#license)
+
+## Requirements
+
+1. Node.js >= 14.x
+2. npm >= 6.x
+3. PostgreSQL
+4. Cloudinary Account
+
+## Installation
 
 1. **Clone the Repository**: [Repo](https://github.com/Dounder/nest-pg-rest-boilerplate.git)
 
@@ -54,16 +70,6 @@ $ yarn run test:e2e
 # test coverage
 $ yarn run test:cov
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
 ## License
 
